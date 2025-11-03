@@ -6,6 +6,7 @@ object AppDependencies {
   private val playVersion = "play-30"
   private val bootstrapVersion = "10.3.0"
   private val hmrcMongoVersion = "2.10.0"
+  private val pekkoVersion = "1.2.1"
 
   val compile = Seq(
     ws,
@@ -20,7 +21,10 @@ object AppDependencies {
     "uk.gov.hmrc.mongo"      %% s"hmrc-mongo-test-$playVersion" % hmrcMongoVersion,
     "org.scalatestplus.play" %% "scalatestplus-play"            % "7.0.2",
     "org.scalatestplus"      %% "scalacheck-1-17"               % "3.2.18.0",
-    "org.apache.pekko"       %% "pekko-testkit"                 % "1.2.1",
+    "org.apache.pekko"       %% "pekko-http"                    % "1.3.0",
+    "org.apache.pekko"       %% "pekko-actor-typed"             % pekkoVersion,
+    "org.apache.pekko"       %% "pekko-stream"                  % pekkoVersion,
+    "org.apache.pekko"       %% "pekko-serialization-jackson"   % pekkoVersion,
   ).map(_ % "test")
 
   val all: Seq[ModuleID] = compile ++ test
