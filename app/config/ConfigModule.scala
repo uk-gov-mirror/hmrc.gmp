@@ -22,7 +22,7 @@ import ttl.UpdateCacheTTLService
 
 import scala.annotation.unused
 
-class ConfigModule(@unused environment: Environment, configuration: Configuration) extends AbstractModule {
+class ConfigModule(@unused environment: Environment, @unused configuration: Configuration) extends AbstractModule {
   override def configure(): Unit = {
    
     bind(classOf[UpdateCacheTTLService]).asEagerSingleton()
