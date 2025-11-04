@@ -128,9 +128,11 @@ class CalculationMongoRepositorySpec extends AnyWordSpec
         }
 
         "deserialize createdAt as Mongo Extended JSON with $date.$numberLong (UTC millis)" in {
-
+          val expectedTime = Instant.parse("2025-11-03T10:00:00Z")
+          val dt = expectedTime.toEpochMilli
+          
           val json = Json.parse(
-            """
+            s"""
               |{
               |"request": 69942156,
               |  "response": {
@@ -162,19 +164,20 @@ class CalculationMongoRepositorySpec extends AnyWordSpec
               |    "dualCalc": false,
               |    "calcType": 0
               |  },
-              |  "createdAt": { "$date": { "$numberLong": "1762164000000" } }
+              |  "createdAt": { "$$date": { "$$numberLong": "$dt" } }
               |}
            """.stripMargin)
 
           val details = json.as[CachedCalculation]
 
-          details.createdAt.toInstant(ZoneOffset.UTC)  shouldBe Instant.parse("2025-11-03T10:00:00Z")
+          details.createdAt  shouldBe Instant.parse("2025-11-03T10:00:00Z")
 
         }
 
         "serialize createdAt from Mongo Extended JSON structure" in {
           val localDateTime = LocalDateTime.of(2024, 6, 30, 12, 34, 56, 789000000)
-          val millisTime= localDateTime.toInstant(ZoneOffset.UTC).toEpochMilli
+          val millisTime = localDateTime.toInstant(ZoneOffset.UTC).toEpochMilli
+          val instant = Instant.ofEpochMilli(millisTime)
 
           val json = Json.obj(
             "request" -> testHashCode,
@@ -184,9 +187,9 @@ class CalculationMongoRepositorySpec extends AnyWordSpec
             )
           )
 
-          val parsedJson = json.validate[CachedCalculation]
-          parsedJson.isSuccess shouldBe true
-          parsedJson.get shouldBe CachedCalculation(testHashCode, response, localDateTime)
+          val parsed = json.validate[CachedCalculation]
+          parsed.isSuccess shouldBe true
+          parsed.get shouldBe CachedCalculation(testHashCode, response, instant)
         }
     }
   }

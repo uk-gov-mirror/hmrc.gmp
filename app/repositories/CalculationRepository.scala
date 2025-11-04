@@ -20,40 +20,24 @@ import com.google.inject.{ImplementedBy, Inject, Singleton}
 import models.{CalculationRequest, GmpCalculationResponse}
 import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes}
 import play.api.Logging
-import play.api.libs.functional.syntax.toFunctionalBuilderOps
-import play.api.libs.json.{Format, Json, OFormat, __}
+import play.api.libs.json.{Format, Json, OFormat}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
-import java.time.{Instant, LocalDateTime, ZoneOffset}
+import java.time.Instant
 import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
 
 case class CachedCalculation(request: Int,
                              response: GmpCalculationResponse,
-                             createdAt: LocalDateTime = LocalDateTime.now(ZoneOffset.UTC)
+                             createdAt: Instant = Instant.now()
                             )
 
 object CachedCalculation {
-
-  private val localDateTimeFormat: Format[LocalDateTime] = Format(
-    (__ \ "$date" \ "$numberLong").read[String].map { millis =>
-      LocalDateTime.ofInstant(Instant.ofEpochMilli(millis.toLong), ZoneOffset.UTC)
-    },
-    (dt: LocalDateTime) =>
-      Json.obj(
-        "$date" -> Json.obj(
-          "$numberLong" -> dt.toInstant(ZoneOffset.UTC).toEpochMilli.toString
-        )
-      )
-  )
-
-  implicit val format: Format[CachedCalculation] = (
-    (__ \ "request").format[Int] and
-      (__ \ "response").format[GmpCalculationResponse] and
-      (__ \ "createdAt").format(using localDateTimeFormat)
-    )(CachedCalculation.apply, cc => (cc.request, cc.response, cc.createdAt))
+  given Format[Instant] = MongoJavatimeFormats.instantFormat
+  implicit val formats: OFormat[CachedCalculation] = Json.format[CachedCalculation]
 }
 
 @ImplementedBy(classOf[CalculationMongoRepository])
@@ -70,7 +54,7 @@ class CalculationMongoRepository @Inject()(mongo: MongoComponent, implicit val e
   extends PlayMongoRepository[CachedCalculation](
     collectionName = "calculation",
     mongoComponent = mongo,
-    domainFormat = CachedCalculation.format,
+    domainFormat = CachedCalculation.formats,
     indexes = Seq(IndexModel(
       Indexes.ascending("createdAt"),
       IndexOptions()

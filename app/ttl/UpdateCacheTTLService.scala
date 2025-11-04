@@ -19,13 +19,12 @@ package ttl
 import javax.inject.{Inject, Singleton}
 import com.mongodb.ErrorCategory
 import org.bson.BsonType
-import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes}
-import org.mongodb.scala.{Document, MongoCollection, MongoWriteException, ObservableFuture, SingleObservableFuture}
+import org.mongodb.scala.model.Filters
+import org.mongodb.scala.{Document, MongoCollection, MongoWriteException, SingleObservableFuture}
 import play.api.Logging
 import uk.gov.hmrc.mongo.MongoComponent
 
 import java.util.Date
-import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -38,16 +37,7 @@ class UpdateCacheTTLService @Inject() ( mongo: MongoComponent)(implicit val ec: 
     mongo.database.getCollection("gmp-cache-locks")
 
   private val lockId = "update-cache-ttl-lock"
-
-  val ttlSeconds = 10 * 60 // 10 minutes
-  val ttlIndex = new IndexModel(
-    Indexes.ascending("createdAt"),
-    new IndexOptions()
-      .name("cache-ttl")
-      .expireAfter(ttlSeconds.toLong, TimeUnit.SECONDS)
-  )
-  lockCollection.createIndexes(Seq(ttlIndex)).toFuture()
-
+  
   // Trigger at the time of Startup
   updateItem()
 
@@ -55,7 +45,7 @@ class UpdateCacheTTLService @Inject() ( mongo: MongoComponent)(implicit val ec: 
     val lockDoc = Document("_id" -> lockId, "createdAt" -> new Date())
     lockCollection.insertOne(lockDoc).toFuture().map(_ => true).recover {
       case ex: MongoWriteException if ex.getError.getCategory == ErrorCategory.DUPLICATE_KEY => {
-        logger.warn("Lock already exists. Skipping current job.")
+        logger.info("Lock already exists. Skipping current job.")
         false
       }
       case ex => {
@@ -65,10 +55,23 @@ class UpdateCacheTTLService @Inject() ( mongo: MongoComponent)(implicit val ec: 
     }
   }
 
+  private def dropLockCollection(reason: String): Future[Unit] = {
+    logger.info(s"Dropping lock collection due to: $reason")
+    lockCollection
+      .drop()
+      .toFuture()
+      .map { _ =>
+        logger.info("Lock collection dropped successfully.")
+      }
+      .recover { case ex =>
+        logger.error("Failed to drop lock collection", ex)
+      }
+  }
+
   def updateItem(): Future[Unit] =
     acquireLock().flatMap {
       case true =>
-        logger.warn("Lock acquired. Starting aggregation-based update.")
+        logger.info("Lock acquired. Starting aggregation-based update.")
         val createdATFilter = Filters.`type`("createdAt", BsonType.STRING)
 
         val updatePipeline = List(
@@ -88,10 +91,16 @@ class UpdateCacheTTLService @Inject() ( mongo: MongoComponent)(implicit val ec: 
           )
           .toFuture()
           .map { result =>
-            logger.warn(s"Aggregation update completed: ${result.getModifiedCount} documents updated.")
+            logger.info(s"Aggregation update completed: ${result.getModifiedCount} documents updated.")
           }
-          .recover { case ex =>
+          .recoverWith { case ex =>
             logger.error("Aggregation update failed", ex)
+            // Drop collection in case of failure
+            dropLockCollection("Aggregation failure")
+          }
+          .flatMap { _ =>
+            // Drop collection after successful update
+            dropLockCollection("Successful update")
           }
 
       case false =>
