@@ -33,13 +33,17 @@ class UpdateCacheTTLService @Inject() ( mongo: MongoComponent)(implicit val ec: 
   private val collection: MongoCollection[Document] =
     mongo.database.getCollection("calculation")
 
+  private val sconCollection: MongoCollection[Document] =
+    mongo.database.getCollection("validate_scon")  
+
   private val lockCollection: MongoCollection[Document] =
     mongo.database.getCollection("gmp-cache-locks")
 
   private val lockId = "update-cache-ttl-lock"
   
   // Trigger at the time of Startup
-  updateItem()
+  updateItem(sconCollection)
+  updateItem(collection)
 
   private def acquireLock(): Future[Boolean] = {
     val lockDoc = Document("_id" -> lockId, "createdAt" -> new Date())
@@ -54,6 +58,7 @@ class UpdateCacheTTLService @Inject() ( mongo: MongoComponent)(implicit val ec: 
       }
     }
   }
+  
 
   private def dropLockCollection(reason: String): Future[Unit] = {
     logger.info(s"Dropping lock collection due to: $reason")
@@ -68,7 +73,7 @@ class UpdateCacheTTLService @Inject() ( mongo: MongoComponent)(implicit val ec: 
       }
   }
 
-  def updateItem(): Future[Unit] =
+  def updateItem(collection: MongoCollection[Document]): Future[Unit] =
     acquireLock().flatMap {
       case true =>
         logger.info("Lock acquired. Starting aggregation-based update.")

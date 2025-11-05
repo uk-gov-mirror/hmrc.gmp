@@ -20,20 +20,22 @@ import com.google.inject.{ImplementedBy, Inject, Singleton}
 import models.GmpValidateSconResponse
 import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes}
 import play.api.Logging
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json.{Format, Json, OFormat}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
-import java.time.{LocalDateTime, ZoneOffset}
+import java.time.Instant
 import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
 
 
 case class ValidateSconMongoModel(scon: String,
                                   response: GmpValidateSconResponse,
-                                  createdAt: LocalDateTime = LocalDateTime.now(ZoneOffset.UTC))
+                                  createdAt: Instant = Instant.now())
 
 object ValidateSconMongoModel {
+  implicit val instantFormat: Format[Instant] = MongoJavatimeFormats.instantFormat
   implicit val formats: OFormat[ValidateSconMongoModel] = Json.format[ValidateSconMongoModel]
 }
 
