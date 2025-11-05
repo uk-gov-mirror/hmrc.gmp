@@ -35,7 +35,7 @@ case class CachedCalculation(request: Int,
                              createdAt: Instant = Instant.now())
 
 object CachedCalculation {
-  given Format[Instant] = MongoJavatimeFormats.instantFormat
+  given instantFormat: Format[Instant] = MongoJavatimeFormats.instantFormat
   implicit val formats: OFormat[CachedCalculation] = Json.format[CachedCalculation]
 }
 
