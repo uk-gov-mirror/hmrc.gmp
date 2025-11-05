@@ -43,7 +43,6 @@ object CachedCalculation {
 trait CalculationRepository {
 
   def findByRequest(request: CalculationRequest): Future[Option[GmpCalculationResponse]]
-
   def insertByRequest(request: CalculationRequest, response: GmpCalculationResponse): Future[Boolean]
 
 }
