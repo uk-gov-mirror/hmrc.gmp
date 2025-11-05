@@ -23,7 +23,9 @@ import org.scalatest.wordspec.AnyWordSpec
 import uk.gov.hmrc.mongo.test.PlayMongoRepositorySupport
 import org.scalatest.matchers.should.Matchers
 import org.mongodb.scala.SingleObservableFuture
+import play.api.Configuration
 import play.api.libs.json.Json
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import java.time.{Instant, LocalDateTime, ZoneOffset}
 import scala.concurrent.{Await, ExecutionContext}
@@ -34,7 +36,9 @@ class CalculationMongoRepositorySpec extends AnyWordSpec
   with Matchers
   with BeforeAndAfterEach
   with ScalaFutures {
-  override val repository: CalculationMongoRepository = new CalculationMongoRepository(mongoComponent, ExecutionContext.global)
+  private val config         = Configuration("calculationExpiryTime" -> 600)
+  private val servicesConfig = new ServicesConfig(config)
+  override val repository: CalculationMongoRepository = new CalculationMongoRepository(mongoComponent, servicesConfig, ExecutionContext.global)
 
   val calculationRequest: CalculationRequest =  CalculationRequest("S2730000B", "AA000004A", "BILLING", "MARCUS", None)
 

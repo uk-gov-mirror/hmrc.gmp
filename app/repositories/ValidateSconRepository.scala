@@ -24,6 +24,7 @@ import play.api.libs.json.{Format, Json, OFormat}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import java.time.Instant
 import java.util.concurrent.TimeUnit
@@ -47,7 +48,7 @@ trait ValidateSconRepository {
 }
 
 @Singleton
-class ValidateSconMongoRepository @Inject()(mongo: MongoComponent, implicit val executionContext: ExecutionContext)
+class ValidateSconMongoRepository @Inject()(mongo: MongoComponent, val servicesConfig: ServicesConfig, implicit val executionContext: ExecutionContext)
   extends PlayMongoRepository[ValidateSconMongoModel](
     collectionName = "validate_scon",
     mongoComponent = mongo,
@@ -56,7 +57,7 @@ class ValidateSconMongoRepository @Inject()(mongo: MongoComponent, implicit val 
       Indexes.ascending("createdAt"),
       IndexOptions()
         .name("sconValidationResponseExpiry")
-        .expireAfter(600, TimeUnit.SECONDS)
+        .expireAfter(servicesConfig.getInt("sconValidationExpiryTime").toLong, TimeUnit.SECONDS)
     ))
   ) with ValidateSconRepository with Logging {
 

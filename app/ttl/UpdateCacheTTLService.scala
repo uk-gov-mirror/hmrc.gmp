@@ -30,11 +30,11 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class UpdateCacheTTLService @Inject() ( mongo: MongoComponent)(implicit val ec: ExecutionContext) extends Logging {
 
-  private val collection: MongoCollection[Document] =
+  private val calculationCollection: MongoCollection[Document] =
     mongo.database.getCollection("calculation")
 
   private val sconCollection: MongoCollection[Document] =
-    mongo.database.getCollection("validate_scon")  
+    mongo.database.getCollection("validate_scon")
 
   private val lockCollection: MongoCollection[Document] =
     mongo.database.getCollection("gmp-cache-locks")
@@ -43,7 +43,7 @@ class UpdateCacheTTLService @Inject() ( mongo: MongoComponent)(implicit val ec: 
   
   // Trigger at the time of Startup
   updateItem(sconCollection)
-  updateItem(collection)
+  updateItem(calculationCollection)
 
   private def acquireLock(): Future[Boolean] = {
     val lockDoc = Document("_id" -> lockId, "createdAt" -> new Date())
@@ -58,7 +58,7 @@ class UpdateCacheTTLService @Inject() ( mongo: MongoComponent)(implicit val ec: 
       }
     }
   }
-  
+
 
   private def dropLockCollection(reason: String): Future[Unit] = {
     logger.info(s"Dropping lock collection due to: $reason")

@@ -28,6 +28,7 @@ import java.time.Instant
 import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 
 case class CachedCalculation(request: Int,
@@ -48,8 +49,8 @@ trait CalculationRepository {
 }
 
 @Singleton
-class CalculationMongoRepository @Inject()(mongo: MongoComponent, implicit val executionContext: ExecutionContext)
-  extends PlayMongoRepository[CachedCalculation](
+class CalculationMongoRepository @Inject()(mongo: MongoComponent, val servicesConfig: ServicesConfig, implicit val executionContext: ExecutionContext)
+  extends PlayMongoRepository[CachedCalculation] (
     collectionName = "calculation",
     mongoComponent = mongo,
     domainFormat = CachedCalculation.formats,
@@ -57,7 +58,7 @@ class CalculationMongoRepository @Inject()(mongo: MongoComponent, implicit val e
       Indexes.ascending("createdAt"),
       IndexOptions()
         .name("calculationResponseExpiry")
-        .expireAfter(600, TimeUnit.SECONDS)
+        .expireAfter(servicesConfig.getInt("calculationExpiryTime").toLong, TimeUnit.SECONDS)
     ))
   ) with CalculationRepository with Logging {
 
