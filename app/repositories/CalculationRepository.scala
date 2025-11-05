@@ -32,8 +32,7 @@ import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
 case class CachedCalculation(request: Int,
                              response: GmpCalculationResponse,
-                             createdAt: Instant = Instant.now()
-                            )
+                             createdAt: Instant = Instant.now())
 
 object CachedCalculation {
   given Format[Instant] = MongoJavatimeFormats.instantFormat
